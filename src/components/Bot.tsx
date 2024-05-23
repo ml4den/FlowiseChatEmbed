@@ -200,7 +200,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   );
   const [socketIOClientId, setSocketIOClientId] = createSignal('');
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
-  const [chatId, setChatId] = createSignal((props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4());
+  const [chatId, setChatId] = createSignal(
+    (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
+  );
   const [starterPrompts, setStarterPrompts] = createSignal<string[]>([], { equals: false });
   const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(false);
   const [uploadsConfig, setUploadsConfig] = createSignal<UploadsConfig>();
@@ -417,6 +419,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         handleError(`Error: ${error?.message.replaceAll('Error:', ' ')}`);
         return;
       }
+      if (typeof error === 'string') {
+        handleError(error);
+        return;
+      }
       handleError();
       return;
     }
@@ -432,8 +438,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         {
           message: props.welcomeMessage ?? defaultWelcomeMessage,
           type: 'apiMessage',
-        }
-      ]
+        },
+      ];
       if (leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead) {
         messages.push({ message: '', type: 'leadCaptureMessage' });
       }
@@ -446,7 +452,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   // Auto scroll chat to bottom
   createEffect(() => {
-    if (messages()) scrollToBottom();
+    if (messages()) {
+      if (messages().length > 1) {
+        setTimeout(() => {
+          chatContainer?.scrollTo(0, chatContainer.scrollHeight);
+        }, 400);
+      }
+    }
   });
 
   createEffect(() => {
@@ -476,9 +488,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               if (message.fileUploads) chatHistory.fileUploads = message.fileUploads;
               return chatHistory;
             })
-          : [{ message: props.welcomeMessage ?? defaultWelcomeMessage, type: 'apiMessage'}];
+          : [{ message: props.welcomeMessage ?? defaultWelcomeMessage, type: 'apiMessage' }];
 
-      const filteredMessages = loadedMessages.filter((message) => message.message !== '' && message.type !== 'leadCaptureMessage')
+      const filteredMessages = loadedMessages.filter((message) => message.message !== '' && message.type !== 'leadCaptureMessage');
       setMessages([...filteredMessages]);
     }
 
@@ -894,6 +906,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                         message={message}
                         chatflowid={props.chatflowid}
                         chatId={chatId()}
+                        apiHost={props.apiHost}
+                        backgroundColor={props.botMessage?.backgroundColor}
+                        textColor={props.botMessage?.textColor}
+                        fontSize={props.fontSize}
+                        showAvatar={props.botMessage?.showAvatar}
+                        avatarSrc={props.botMessage?.avatarSrc}
                         leadsConfig={leadsConfig()}
                         sendButtonColor={props.textInput?.sendButtonColor}
                         isLeadSaved={isLeadSaved()}
